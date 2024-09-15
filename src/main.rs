@@ -9,6 +9,11 @@ fn main() -> io::Result<()> {
         io::stdout().flush()?;
         let mut input = String::new();
         stdin.read_line(&mut input).unwrap();
-        println!("{}: command not found", input.trim());
+        input = input.trim().to_string();
+
+        match input.as_str() {
+            "exit 0" => break Ok(()),
+            _ => println!("{}: command not found", input),
+        }
     }
 }
