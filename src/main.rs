@@ -14,6 +14,7 @@ fn main() -> io::Result<()> {
         let input = prompt()?;
         let mut it = input.trim().split_whitespace();
         match it.next() {
+            Some("cd") => handle_cd(it),
             Some("echo") => handle_echo(it),
             Some("exit") => handle_exit(it),
             Some("pwd") => handle_pwd(),
@@ -23,6 +24,12 @@ fn main() -> io::Result<()> {
         }
         .unwrap_or_else(|e| eprintln!("{}", e));
     }
+}
+
+fn handle_cd(mut args: SplitWhitespace) -> Result<()> {
+    let dir = args.next().unwrap_or("/");
+    std::env::set_current_dir(dir)
+        .map_err(|_| Error::msg(format!("cd: {}: No such file or directory", dir)))
 }
 
 fn handle_echo(args: SplitWhitespace) -> Result<()> {
