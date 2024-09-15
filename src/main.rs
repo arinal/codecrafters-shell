@@ -16,9 +16,10 @@ fn main() -> io::Result<()> {
         match it.next() {
             Some("echo") => handle_echo(it),
             Some("exit") => handle_exit(it),
+            Some("pwd") => handle_pwd(),
             Some("type") => handle_type(it, &paths),
-            Some(file) => handle_file(file, it, &paths),
-            None => Err(Error::msg("unexpected end of command input")),
+            Some(file) => handle_exe(file, it, &paths),
+            None => Ok(()),
         }
         .unwrap_or_else(|e| eprintln!("{}", e));
     }
@@ -34,12 +35,17 @@ fn handle_exit(mut args: SplitWhitespace) -> Result<()> {
     std::process::exit(code)
 }
 
+fn handle_pwd() -> Result<()> {
+    let pwd = std::env::current_dir()?;
+    Ok(println!("{}", pwd.display()))
+}
+
 fn handle_type(mut args: SplitWhitespace, paths: &HashSet<&str>) -> Result<()> {
     let arg = args
         .next()
         .ok_or_else(|| Error::msg("type: missing argument"))?;
 
-    let builtins = HashSet::from(["echo", "exit", "type"]);
+    let builtins = HashSet::from(["echo", "exit", "type", "pwd"]);
 
     match arg {
         _ if builtins.contains(arg) => Ok(println!("{} is a shell builtin", arg)),
@@ -53,7 +59,7 @@ fn handle_type(mut args: SplitWhitespace, paths: &HashSet<&str>) -> Result<()> {
     }
 }
 
-fn handle_file(file: &str, args: SplitWhitespace, paths: &HashSet<&str>) -> Result<()> {
+fn handle_exe(file: &str, args: SplitWhitespace, paths: &HashSet<&str>) -> Result<()> {
     let file_path = find_file(file, paths);
     file_path.map_or_else(
         || Err(Error::msg(format!("{}: not found", file))),
