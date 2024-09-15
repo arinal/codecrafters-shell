@@ -9,12 +9,13 @@ use anyhow::{Error, Result};
 fn main() -> io::Result<()> {
     let binding = std::env::var("PATH").expect("PATH not set");
     let paths = binding.split(':').collect::<HashSet<_>>();
+    let home = std::env::var("HOME").ok();
 
     loop {
         let input = prompt()?;
         let mut it = input.trim().split_whitespace();
         match it.next() {
-            Some("cd") => handle_cd(it),
+            Some("cd") => handle_cd(it, home.as_ref()),
             Some("echo") => handle_echo(it),
             Some("exit") => handle_exit(it),
             Some("pwd") => handle_pwd(),
@@ -26,9 +27,13 @@ fn main() -> io::Result<()> {
     }
 }
 
-fn handle_cd(mut args: SplitWhitespace) -> Result<()> {
+fn handle_cd(mut args: SplitWhitespace, home: Option<&String>) -> Result<()> {
     let dir = args.next().unwrap_or("/");
-    std::env::set_current_dir(dir)
+    let dir = match dir {
+        "~" => home.ok_or_else(|| Error::msg("cd: HOME not set"))?,
+        _ => dir,
+    };
+    std::env::set_current_dir(&dir)
         .map_err(|_| Error::msg(format!("cd: {}: No such file or directory", dir)))
 }
 
