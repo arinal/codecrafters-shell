@@ -9,10 +9,14 @@ fn main() -> io::Result<()> {
         io::stdout().flush()?;
         let mut input = String::new();
         stdin.read_line(&mut input).unwrap();
-        input = input.trim().to_string();
+        let mut it = input.trim().split_whitespace();
 
-        match input.as_str() {
-            "exit 0" => break Ok(()),
+        match it.next() {
+            Some("exit") => break Ok(()),
+            Some("echo") => {
+                let rest = it.collect::<Vec<&str>>().join(" ");
+                println!("{}", rest);
+            }
             _ => println!("{}: command not found", input),
         }
     }
