@@ -17,11 +17,59 @@ fn main() -> io::Result<()> {
             Some("echo") => handle_echo(it),
             Some("exit") => handle_exit(it),
             Some("type") => handle_type(it, &paths),
-            Some(unknown) => Err(Error::msg(format!("{}: command not found", unknown))),
+            Some(file) => handle_file(file, it, &paths),
             None => Err(Error::msg("unexpected end of command input")),
         }
         .unwrap_or_else(|e| eprintln!("{}", e));
     }
+}
+
+fn handle_echo(args: SplitWhitespace) -> Result<()> {
+    let rest = args.collect::<Vec<&str>>().join(" ").trim().to_string();
+    Ok(println!("{}", rest))
+}
+
+fn handle_exit(mut args: SplitWhitespace) -> Result<()> {
+    let code = args.next().unwrap_or("0").parse::<i32>()?;
+    std::process::exit(code)
+}
+
+fn handle_type(mut args: SplitWhitespace, paths: &HashSet<&str>) -> Result<()> {
+    let arg = args
+        .next()
+        .ok_or_else(|| Error::msg("type: missing argument"))?;
+
+    let builtins = HashSet::from(["echo", "exit", "type"]);
+
+    match arg {
+        _ if builtins.contains(arg) => Ok(println!("{} is a shell builtin", arg)),
+        _ => {
+            let file_path = find_file(arg, paths);
+            file_path.map_or_else(
+                || Err(Error::msg(format!("{}: not found", arg))),
+                |path| Ok(println!("{} is {}", arg, path)),
+            )
+        }
+    }
+}
+
+fn handle_file(file: &str, args: SplitWhitespace, paths: &HashSet<&str>) -> Result<()> {
+    let file_path = find_file(file, paths);
+    file_path.map_or_else(
+        || Err(Error::msg(format!("{}: not found", file))),
+        |path| {
+            let mut cmd = std::process::Command::new(path);
+            cmd.args(args);
+            cmd.status().map(|_| ()).map_err(Error::from)
+        },
+    )
+}
+
+fn find_file(arg: &str, paths: &HashSet<&str>) -> Option<String> {
+    paths.iter().find_map(|path| {
+        let cmd = format!("{}/{}", path, arg);
+        std::fs::metadata(&cmd).ok().map(|_| cmd)
+    })
 }
 
 fn prompt() -> io::Result<String> {
@@ -31,36 +79,4 @@ fn prompt() -> io::Result<String> {
     let mut input = String::new();
     stdin.read_line(&mut input)?;
     Ok(input)
-}
-
-fn handle_echo(tokens: SplitWhitespace) -> Result<()> {
-    let rest = tokens.collect::<Vec<&str>>().join(" ").trim().to_string();
-    Ok(println!("{}", rest))
-}
-
-fn handle_exit(mut tokens: SplitWhitespace) -> Result<()> {
-    let code = tokens.next().unwrap_or("0").parse::<i32>()?;
-    std::process::exit(code)
-}
-
-fn handle_type(mut tokens: SplitWhitespace, paths: &HashSet<&str>) -> Result<()> {
-    let arg = tokens
-        .next()
-        .ok_or_else(|| Error::msg("type: missing argument"))?;
-
-    let builtins = HashSet::from(["echo", "exit", "type"]);
-
-    match arg {
-        _ if builtins.contains(arg) => Ok(println!("{} is a shell builtin", arg)),
-        _ => {
-            let path = paths.iter().find_map(|path| {
-                let cmd = format!("{}/{}", path, arg);
-                std::fs::metadata(&cmd).ok().map(|_| cmd)
-            });
-            path.map_or_else(
-                || Err(Error::msg(format!("{}: not found", arg))),
-                |path| Ok(println!("{} is {}", arg, path)),
-            )
-        }
-    }
 }
