@@ -7,7 +7,7 @@ use std::{
 use anyhow::{Error, Result};
 
 fn main() -> io::Result<()> {
-    let binding = std::env::var("PATH").unwrap_or_else(|_| "/bin:/usr/bin".into());
+    let binding = std::env::var("PATH").expect("PATH not set");
     let paths = binding.split(':').collect::<HashSet<_>>();
 
     loop {
