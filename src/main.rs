@@ -14,10 +14,11 @@ fn main() -> io::Result<()> {
         match it.next() {
             Some("exit") => break Ok(()),
             Some("echo") => {
-                let rest = it.collect::<Vec<&str>>().join(" ");
+                let rest = it.collect::<Vec<&str>>().join(" ").trim().to_string();
                 println!("{}", rest);
             }
-            _ => println!("{}: command not found", input),
+            Some(unknown) => println!("{}: command not found", unknown),
+            None => (),
         }
     }
 }
