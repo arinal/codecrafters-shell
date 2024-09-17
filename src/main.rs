@@ -12,10 +12,11 @@ fn main() -> io::Result<()> {
     let home = std::env::var("HOME").ok();
 
     loop {
-        let input = prompt()?;
-        Command::try_from(input.as_str())
-            .and_then(|cmd| cmd.execute(home.as_ref(), &paths))
-            .unwrap_or_else(|e| eprintln!("{}", e))
+        prompt()?
+            .as_str()
+            .try_into()
+            .and_then(|cmd: Command| cmd.execute(home.as_ref(), &paths))
+            .unwrap_or_else(|e| eprintln!("{}", e));
     }
 }
 

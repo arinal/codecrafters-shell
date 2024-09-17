@@ -1,23 +1,24 @@
-use std::collections::HashSet;
 use anyhow::{Error, Result};
+use std::collections::HashSet;
 
 pub enum Command {
     Pwd,
-    Cd { dir: String },
+    Cd   { dir: String },
     Echo { string: String },
     Exit { code: i32 },
     Type { arg: String },
-    Exe { file: String, args: Vec<String> },
+    Exe  { file: String, args: Vec<String> },
 }
 
 impl Command {
+
     pub fn execute(&self, home: Option<&String>, paths: &HashSet<&str>) -> Result<()> {
         match self {
-            Command::Cd { dir } => Self::handle_cd(dir, home), // Clone dir as handle_cd takes ownership
-            Command::Echo { string } => Self::handle_echo(string),
-            Command::Exit { code } => Self::handle_exit(*code),
-            Command::Pwd => Self::handle_pwd(),
-            Command::Type { arg } => Self::handle_type(arg, paths),
+            Command::Cd { dir }         => Self::handle_cd(dir, home),
+            Command::Echo { string }    => Self::handle_echo(string),
+            Command::Exit { code }      => Self::handle_exit(*code),
+            Command::Pwd                => Self::handle_pwd(),
+            Command::Type { arg }       => Self::handle_type(arg, paths),
             Command::Exe { file, args } => Self::handle_exe(&file, args, paths),
         }
     }
@@ -25,7 +26,7 @@ impl Command {
     fn handle_cd(dir: &str, home: Option<&String>) -> Result<()> {
         let dir = match dir {
             "~" => home.ok_or_else(|| Error::msg("cd: HOME not set"))?,
-            _ => dir,
+            _   => dir,
         };
         std::env::set_current_dir(&dir)
             .map_err(|_| Error::msg(format!("cd: {}: No such file or directory", dir)))
@@ -46,7 +47,6 @@ impl Command {
 
     fn handle_type(arg: &str, paths: &HashSet<&str>) -> Result<()> {
         let builtins = HashSet::from(["echo", "exit", "type", "pwd"]);
-
         match arg {
             _ if builtins.contains(arg) => Ok(println!("{} is a shell builtin", arg)),
             _ => {
@@ -73,8 +73,8 @@ impl Command {
 
     fn find_file(arg: &str, paths: &HashSet<&str>) -> Option<String> {
         paths.iter().find_map(|path| {
-            let cmd = format!("{}/{}", path, arg);
-            std::fs::metadata(&cmd).ok().map(|_| cmd)
+            let file = format!("{}/{}", path, arg);
+            std::fs::metadata(&file).ok().map(|_| file)
         })
     }
 }
